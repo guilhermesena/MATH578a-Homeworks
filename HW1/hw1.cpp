@@ -5,6 +5,7 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
+#include <string.h>
 
 using namespace std;
 
@@ -53,6 +54,7 @@ public:
 	}
 
 	void Needleman_Wunsch() {
+
 		for (int i = 0; i < la; i++) {
 			score[i][0] = i * SCORE_GAP;
 			prev[i][0] = make_pair(i, 0);
@@ -117,13 +119,12 @@ public:
 
 class Aligner {
 public:
-
-	void read(ifstream &inp) {
+	void read(ifstream &inp, vector<Sequence> &v) {
 		string word_read;
-		vector<Sequence> v;
 		int nseq = -1;
+
+		inp >> word_read;
 		while (!inp.eof()) {
-			inp >> word_read;
 
 			if (word_read[0] == '>') {
 				++nseq;
@@ -134,15 +135,21 @@ public:
 			} else if (word_read.size() > 0) {
 				v[nseq].seq.append(word_read);
 			}
+			inp >> word_read;
 		}
 		inp.close();
+	}
 
+	void print_sequences(vector<Sequence> v) {
 		int len = v.size();
 		for (int i = 0; i < len; i++) {
 			printf("Sequence %d: %s\n%s\n\n", i + 1, v[i].name.c_str(),
 					v[i].seq.c_str());
 		}
+	}
 
+	void run_all_pairwise_alignments(vector<Sequence> v) {
+		int len = v.size();
 		for (int i = 0; i < len; i++) {
 			for (int j = 0; j < len; j++) {
 
@@ -170,7 +177,11 @@ public:
 			return 1;
 		}
 
-		read(inp);
+		vector<Sequence> v;
+		read(inp, v);
+		print_sequences(v);
+		run_all_pairwise_alignments(v);
+
 		return 0;
 	}
 };
