@@ -95,7 +95,7 @@ public:
 				b_backwards.push_back('-');
 			}
 
-			if (cur.second == prev[cur.first][cur.second].second) {
+			else if (cur.second == prev[cur.first][cur.second].second) {
 				a_backwards.push_back('-');
 				b_backwards.push_back(sa.seq[cur.second - 1]);
 			} else {
