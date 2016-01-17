@@ -70,7 +70,7 @@ public:
 				int t1 = score[i - 1][j] + SCORE_GAP;
 				int t2 = score[i][j - 1] + SCORE_GAP;
 				int t3 = score[i - 1][j - 1]
-						+ ((sa.seq[i] == sb.seq[j]) ?
+						+ ((sa.seq[i-1] == sb.seq[j-1]) ?
 								SCORE_MATCH : SCORE_MISMATCH);
 
 				score[i][j] = t1;
