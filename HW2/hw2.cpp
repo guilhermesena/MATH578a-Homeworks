@@ -6,7 +6,6 @@
 #include <utility>
 #include <algorithm>
 #include <string.h>
-#include <map>
 using namespace std;
 
 class Sequence {
@@ -32,21 +31,75 @@ private:
 	static const int DIST_GAP = 1;
 	static const int INF = 1 << 30;
 	Sequence sa, sb;
-	map<pair<int,int> , pair<int,int> > prev;
 	int la, lb;
 
-	int char_dist (char a, char b) {
-		return (a==b) ? DIST_MATCH: DIST_MISMATCH;
+	int char_dist(char a, char b) {
+		return (a == b) ? DIST_MATCH : DIST_MISMATCH;
 	}
 
+	int Banded_DP(int k, int &delta, pair<int,int> ** &prev) {
+		printf("Attempting k = %d...\n",k);
+		//la rows, (lb - la +1) + 2k columns
+		delta = lb - la + 1 + 2 * k;
+		int **dist = new int*[la];
+
+		delete prev;
+		prev = new pair<int,int>*[la];
+
+		for (int i = 0; i < la; i++) {
+			dist[i] = new int[delta];
+			prev[i] = new pair<int,int>[delta];
+		}
+
+
+		for (int i = 0; i < la; i++) {
+			int left = max(0, i - k);
+			int right = min(lb, i - k + delta);
+
+			for (int j = 0; j < right - left; j++) {
+				int u = i, v = j + left;
+				if (u == 0) {
+					dist[i][j] = v * DIST_GAP;
+					prev[i][j] = make_pair(i,j);
+					continue;
+				}
+
+				if (v == 0) {
+					dist[i][j] = u * DIST_GAP;
+					prev[i][j] = make_pair(i,j);
+					continue;
+				}
+
+				int t1 = INF, t2 = INF, t3;
+				if (j > 0)
+					t1 = dist[i][j - 1] + DIST_GAP;
+				if (j < delta - 1)
+					t2 = dist[i - 1][j + ((left == 0) ? 0 : 1)] + DIST_GAP;
+
+				t3 = dist[i - 1][j - ((left == 0) ? 1 : 0)] + char_dist(sa.seq[u - 1], sb.seq[v - 1]);
+				prev[i][j] = make_pair(i - 1, j - ((left == 0)?1:0));
+				dist[i][j] = t3;
+				if (t1 < dist[i][j]) {
+					dist[i][j] = t1;
+					prev[i][j] = make_pair(i,j-1);
+				}
+				if (t2 < dist[i][j]) {
+					dist[i][j] = t2;
+					prev[i][j] = make_pair(i-1, j + ((left==0)?0:1));
+				}
+			}
+		}
+		int ans = dist[la - 1][min(lb - 1, delta - k - 1)];
+		delete dist;
+		return ans;
+	}
 public:
 	Alignment(Sequence arg_sa, Sequence arg_sb) {
 		//Guarantees sa always has the smaller length
-		if(arg_sa.seq.size() < arg_sb.seq.size()) {
+		if (arg_sa.seq.size() < arg_sb.seq.size()) {
 			sa = arg_sa;
 			sb = arg_sb;
-		}
-		else {
+		} else {
 			sa = arg_sb;
 			sb = arg_sa;
 		}
@@ -57,79 +110,38 @@ public:
 
 	}
 
-	int Banded_DP (int k) {
-		//la rows, (lb - la +1) + 2k columns
-		int delta = lb - la + 1 + 2*k; 
-		int **dist = new int*[la];
+	void run_and_print () {
+		int k = 1,delta;
+		pair<int,int> **prev;
 
-		for(int i = 0; i < la; i++) {
-			dist[i] = new int[delta];
+		int dist = Banded_DP(k, delta, prev);
+		while (dist > k) {
+			k <<= 1;
+			dist = Banded_DP(k, delta, prev);
 		}
-		prev.clear();
-	
-		for(int i = 0; i < la; i++) {
-			int left = max(0, i - k);
-			int right = min(lb, i - k + delta);
-
-			for(int j = 0; j < right - left; j++) {
-				int u = i, v = j + left; 
-				if(u == 0) {
-					dist[i][j] = v*DIST_GAP;
-					prev[make_pair(u,v)] = make_pair(u,v);
-					continue;
-				}	
-
-				if(v == 0) {
-					dist[i][j] = u*DIST_GAP;
-					prev[make_pair(u,v)] = make_pair(u,v);
-					continue;
-				}
-
-				int t1=INF,t2=INF,t3;
-
-				if(j>0) 
-					t1 = dist[i][j-1] + DIST_GAP;
-				if(j < delta-1) 
-					t2 = dist[i-1][j+((left == 0)?0:1)] + DIST_GAP;
-				
-				t3 = dist[i-1][j - ((left == 0)?1:0)] + char_dist(sa.seq[u-1], sb.seq[v-1]);
-
-				dist[i][j] = t3;
-				prev[make_pair(u,v)] = make_pair(u-1,v-1);
-				
-				if(t1 < dist[i][j]) {
-					dist[i][j] = t1;
-					prev[make_pair(u,v)] = make_pair(u,v-1);
-				}
-
-				if(t2 < dist[i][j]) {
-					dist[i][j] = t2;
-					prev[make_pair(u,v)] = make_pair(u-1,v);
-				}
-			
-			}
-		}
-		return dist[la-1][min(lb-1,delta-k-1)];
+		print_alignment(dist, k, delta, prev);
 	}
 
-	void print_alignment(int dist) {
-		pair<int, int> cur = make_pair(la - 1, lb - 1);
+	void print_alignment(int dist, int k, int delta, pair<int,int> **prev) {
+		pair<int, int> cur = make_pair(la - 1, min(lb-1, delta - k - 1));
 		vector<char> a_backwards, b_backwards;
 
-		while (cur != prev[cur]) {
-			if (cur.first == prev[cur].first) {
-				a_backwards.push_back(sa.seq[cur.first - 1]);
+		while (cur != prev[cur.first][cur.second]) {
+			int u = cur.first, v = cur.second + max(0, u - k);
+			int prevu = prev[cur.first][cur.second].first, prevv = prev[cur.first][cur.second].second + max(0, prevu - k);
+			if (u == prevu) {
+				a_backwards.push_back(sa.seq[u - 1]);
 				b_backwards.push_back('-');
 			}
 
-			else if (cur.second == prev[cur].second) {
+			else if (v == prevv) {
 				a_backwards.push_back('-');
-				b_backwards.push_back(sa.seq[cur.second - 1]);
+				b_backwards.push_back(sa.seq[v - 1]);
 			} else {
-				a_backwards.push_back(sa.seq[cur.first - 1]);
-				b_backwards.push_back(sb.seq[cur.second - 1]);
+				a_backwards.push_back(sa.seq[u - 1]);
+				b_backwards.push_back(sb.seq[v - 1]);
 			}
-			cur = prev[cur];
+			cur = prev[cur.first][cur.second];
 		}
 
 		reverse(a_backwards.begin(), a_backwards.end());
@@ -148,8 +160,8 @@ public:
 		string word_read;
 		int nseq = -1;
 
-		inp >> word_read;
 		while (!inp.eof()) {
+			inp >> word_read;
 			if (word_read[0] == '>') {
 				++nseq;
 				string title = word_read;
@@ -159,7 +171,6 @@ public:
 			} else if (word_read.size() > 0) {
 				v[nseq].seq.append(word_read);
 			}
-			inp >> word_read;
 		}
 		inp.close();
 	}
@@ -176,15 +187,9 @@ public:
 		int len = v.size();
 		for (int i = 0; i < len; i++) {
 			for (int j = 0; j < len; j++) {
-				printf("Aligning sequences %d and %d...\n",i+1,j+1);
+				printf("Aligning sequences %d and %d...\n", i + 1, j + 1);
 				Alignment a(v[i], v[j]);
-				int dist = a.Banded_DP(1),k=1;
-				
-				while(dist > k) {
-					k <<= 1;
-					dist = a.Banded_DP(k);
-				}
-				a.print_alignment(dist);
+				a.run_and_print();
 			}
 		}
 
