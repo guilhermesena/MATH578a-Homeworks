@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include <string.h>
+const int MAX_TEXT_SIZE = 3e8;
+const int MAX_PATTERN_SIZE = 1e3;
+static char P[MAX_PATTERN_SIZE];
+static char T[MAX_TEXT_SIZE];
 
 int naive(char *pattern, char *text) {
 	int lp = strlen(pattern), lt = strlen(text);
@@ -18,10 +22,12 @@ int naive(char *pattern, char *text) {
 }
 
 int main(int argc, char **argv) {
-	if (argc != 3) {
-		printf("Usage: ./naive <PATTERN> <TEXT>\n");
+	if(argc != 2) {
+		printf("Usage: ./naive PATTERN <chromosome_input");
 		return 1;
 	}
-	printf("Pattern = %s\nText = %s\n", argv[1], argv[2]);
-	printf("MATCHES: %d\n", naive(argv[1], argv[2]));
+	strcpy(P, argv[1]);
+	scanf(" %s",T);
+	printf("MATCHES: %d\n", naive(P,T));
+	return 0;
 }
