@@ -2,7 +2,12 @@
 #include <string.h>
 #include <algorithm>
 using namespace std;
+
 const int ALPHABET_SIZE = 256;
+const int MAX_TEXT_SIZE = 3e8;
+const int MAX_PATTERN_SIZE = 1e3;
+static char text[MAX_TEXT_SIZE];
+static char pattern[MAX_PATTERN_SIZE];
 
 void compute_R(char *pattern, int pattern_length, int *R) {
 	for (int i = 0; i < ALPHABET_SIZE; i++) {
@@ -106,13 +111,7 @@ int boyer_moore(char *pattern, char *text) {
 }
 
 int main(int argc, char **argv) {
-	if (argc != 3) {
-		printf("Usage: boyer-moore <PATTERN> <TEXT>\n");
-		return 1;
-	}
-	printf("Pattern = %s\nText = %s\n\n", argv[1], argv[2]);
-	int ans = boyer_moore(argv[1], argv[2]);
-	printf("MATCHES: %d\n", ans);
+	scanf(" %s %s",pattern,text);
+	printf("MATCHES: %d\n", boyer_moore(pattern,text));
 	return 0;
-
 }
