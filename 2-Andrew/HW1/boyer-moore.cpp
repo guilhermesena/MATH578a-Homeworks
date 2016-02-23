@@ -9,18 +9,25 @@ const int MAX_PATTERN_SIZE = 1e3;
 static char text[MAX_TEXT_SIZE];
 static char pattern[MAX_PATTERN_SIZE];
 
+//Reverse string
+void strrev(char *p) {
+  char *q = p;
+  while(q && *q) ++q;
+  for(--q; p < q; ++p, --q)
+    *p = *p ^ *q,
+    *q = *p ^ *q,
+    *p = *p ^ *q;
+}
+
 static void compute_R(char *pattern, int pattern_length, int *R) {
-	for (int i = 0; i < ALPHABET_SIZE; i++) {
-		R[i] = pattern_length;
-	}
+	memset(R,0,sizeof(R));
 	for (int i = 0; i < pattern_length; i++) {
 		R[pattern[i]] = i;
 	}
 }
 static int match(const char *s, int q, int n) {
 	int pattern_length = strlen(s);
-	for (int i = n; max(q, i) < pattern_length && (s[i] == s[q]); i++, q++)
-		;
+	for (int i = n; max(q, i) < pattern_length && (s[i] == s[q]); i++, q++);
 	return q;
 }
 
@@ -53,18 +60,24 @@ static void compute_N(int pattern_length, int *N, int *Z) {
 }
 
 static void compute_Lp(int pattern_length, int *Lp, int *N) {
-	memset(Lp, -1, sizeof(Lp));
+	memset(Lp, 0, sizeof(Lp));
 	for (int i = 0; i < pattern_length; i++) {
 		int j = pattern_length - N[i] - 1;
 		Lp[j] = i;
 	}
 }
 
+//lp(i) is the largest j <= n - i + 1 such that N[j] = j
 static void compute_lp(int pattern_length, int *lp, int *N) {
-	memset(lp, -1, sizeof(lp));
-	for (int i = 0; i < pattern_length; i++) {
-		int j = N[i];
-		lp[j] = i;
+	memset(lp, 0, sizeof(lp));
+	int i = 0, j = pattern_length - 1;
+	while(j >= 0 && i < pattern_length) {
+		if(N[j] == j+1) {
+			while(j <= pattern_length - i+1 && i < pattern_length) {
+				lp[i++] = j+1;
+			}
+		}
+		j--;
 	}
 }
 
@@ -78,24 +91,26 @@ static int boyer_moore(char *pattern, char *text) {
 	int *lp = new int[pattern_length];
 	char pattern_reverse[pattern_length + 1];
 	strcpy(pattern_reverse, pattern);
+	strrev(pattern_reverse);
 	compute_R(pattern, pattern_length, R);
 	compute_Z(pattern_reverse, pattern_length, Z);
 	compute_N(pattern_length, N, Z);
 	compute_Lp(pattern_length, Lp, N);
 	compute_lp(pattern_length, lp, N);
-
+	for(int i = 0; i < pattern_length; i++) printf("N[%d] = %d\n", i, N[i]);
+	for(int i = 0; i < pattern_length; i++) printf("lp[%d] = %d\n", i, lp[i]);
 	int k = pattern_length - 1;
 	int m = strlen(text);
 
 	while (k < m) {
-		int i, h;
-		for (i = pattern_length - 1, h = k; i >= 0 && (pattern[i] == text[h]); i--, h--);
+		int i = pattern_length - 1, h = k;
+		for (; (i >= 0) && (pattern[i] == text[h]); i--, h--);
 		if (i < 0) {
 			printf("Match at [%d, %d]\n", k - pattern_length + 1, k);
 			ans++;
-			k += pattern_length - lp[1] - 1;
+			k += pattern_length - lp[1];
 		} else {
-			k += max(max(R[text[i]] - i, Lp[i] - i), 1);
+			k += max(max (1, i - R[text[h]]), pattern_length - 1 - ((Lp[i]>0)? (Lp[i]):(lp[i])));
 		}
 	}
 	free(R);
@@ -114,6 +129,7 @@ int main(int argc, char **argv) {
 	}
 	strcpy(pattern, argv[1]);
 	scanf(" %s",text);
+	printf("Pattern size = %d, Text size = %d\n", (int) strlen(pattern), (int)strlen(text));
 	printf("MATCHES: %d\n", boyer_moore(pattern,text));
 	return 0;
 }
